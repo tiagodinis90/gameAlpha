@@ -61,6 +61,66 @@ function SelfTab({ s }: { s: GameState }) {
         </div>
       </div>
 
+      {/* Citizen Sleeper-inspired stats */}
+      <div className="border border-ink-700 bg-ink-900/40 p-3">
+        <div className="mb-2 font-body text-[10px] uppercase tracking-[0.3em] text-paper-700">Vital Stats</div>
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="font-body text-[11px] text-paper-300">Stability</span>
+              <span className="font-display text-xs font-bold text-paper-100">{s.stability.current}/{s.stability.max}</span>
+            </div>
+            <div className="mt-1 h-2 w-full bg-ink-700">
+              <div
+                className="h-full transition-all duration-500"
+                style={{
+                  width: `${(s.stability.current / s.stability.max) * 100}%`,
+                  background: s.stability.current > 60 ? "#a9c29b" : s.stability.current > 30 ? "#d9b36a" : "#cf5136",
+                }}
+              />
+            </div>
+            <div className="mt-0.5 font-body text-[9px] italic text-paper-700">{s.stability.lastChange}</div>
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="font-body text-[11px] text-paper-300">Energy</span>
+              <span className="font-display text-xs font-bold text-paper-100">{s.energy}/{s.maxEnergy}</span>
+            </div>
+            <div className="mt-1 flex gap-1">
+              {Array.from({ length: s.maxEnergy }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-3 flex-1 transition-all duration-300 ${
+                    i < s.energy ? "bg-gold-400" : "bg-ink-700"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          {s.statusEffects.length > 0 && (
+            <div>
+              <div className="font-body text-[10px] uppercase tracking-wider text-paper-700 mb-1">Status</div>
+              <div className="flex flex-wrap gap-1">
+                {s.statusEffects.map((eff) => (
+                  <span
+                    key={eff}
+                    className={`border px-1.5 py-0.5 font-body text-[9px] uppercase tracking-wider ${
+                      eff === "inspired" || eff === "blessed" || eff === "determined"
+                        ? "border-moss-400/60 bg-moss-400/10 text-moss-400"
+                        : eff === "exhausted" || eff === "wounded" || eff === "cursed"
+                        ? "border-shu-400/60 bg-shu-400/10 text-shu-400"
+                        : "border-gold-400/60 bg-gold-400/10 text-gold-400"
+                    }`}
+                  >
+                    {eff}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-4 gap-2">
         {attrs.map((a) => (
           <div key={a.name} className="border border-ink-700 bg-ink-900/50 px-1 py-2 text-center">

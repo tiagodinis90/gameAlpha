@@ -960,21 +960,6 @@ const EPILOGUES: GNode[] = [
 
 /* ================================= ASSEMBLY ================================= */
 
-export const NODES: Record<string, GNode> = Object.fromEntries(
-  [...ARRIVAL, ...GATE, ...HUB, ...RAN, ...KENTA, ...JIKAI, ...ELDER, ...SAYO, ...PATH, ...SHRINE, ...EPILOGUES].map(
-    (n) => [n.id, n],
-  ),
-);
-
-bindNodeLookup((id) => NODES[id]);
-
-const CONTENT_ERRORS = validateContent(NODES);
-if (CONTENT_ERRORS.length > 0) {
-  // Fail loudly on invalid authoring data.
-  console.error("[kirifushi] content validation failed:\n" + CONTENT_ERRORS.join("\n"));
-}
-export const contentErrors: string[] = CONTENT_ERRORS;
-
 export const QUEST_STAGES: Record<string, string[]> = {
   names_under_stones: [
     "Reach Kagerou — by writ, by lie, by steel, or by the culvert.",
@@ -991,3 +976,323 @@ export const ENDINGS: { id: string; title: string; kanji: string; blurb: string 
   { id: "vows_in_fog", title: "Vows in the Fog", kanji: "誓", blurb: "Seventh on the roster of those who carry." },
   { id: "travellers_road", title: "A Traveller's Road", kanji: "旅", blurb: "The road is also a kind of answer." },
 ];
+
+/* ================================ NEW LOCATIONS =============================== */
+
+const FOREST: GNode[] = [
+  N("forest.enter", "forest",
+    "The forest begins where the village ends, and the transition is so sudden it feels like stepping through a door. One moment you are in the open, the next you are surrounded by cedar and pine so thick the sky is just a memory of blue above. The air is different here — cooler, damper, smelling of moss and old wood and something else, something that might be mushrooms or might be the ghost of rain that fell a week ago.\n\nThe path through the forest is narrow and winding, marked by old stones that have been here longer than the village. Some of them have carvings, worn almost smooth by time and weather. You can just make out the shapes — they look like hands, or maybe branches, or maybe something in between.",
+    [
+      c("f1", "Follow the path deeper.", "forest.deep"),
+      c("f2", "Examine the carved stones.", "x", {
+        check: { skill: "lore", dc: 10, pass: "forest.stones", fail: "forest.stones_f" },
+      }),
+      c("f3", "Listen to the forest.", "x", {
+        check: { skill: "perception", dc: 11, pass: "forest.listen", fail: "forest.listen_f" },
+      }),
+      c("f4", "Return to the road.", "hub.village"),
+    ],
+    { at: 30, voices: [
+      v("perception", "The forest is watching. Not in the way the village watches — this is older, less personal. The forest does not care about you. It simply notices."),
+      v("empathy", "There is grief here. Not recent grief, but the kind that has settled into the wood and stone, the kind that has become part of the landscape."),
+    ] }),
+  N("forest.deep", "forest",
+    "The path leads deeper, and the trees grow taller, their branches intertwining overhead until the forest becomes a cathedral of green and shadow. The light here is different — filtered, dappled, moving in slow patterns as the wind moves the branches above. You can hear water somewhere, the sound of a stream or river, and the forest seems to lean toward it, the way people lean toward music.\n\nAfter a while, the path opens into a small clearing, and there, in the center, is a stone well. Not the village well — this one is older, smaller, and the stones around its base are carved with the same symbols you saw on the path markers. The water inside is dark and still, and when you lean over the edge, you cannot see the bottom.",
+    [
+      c("f5", "Drop a stone into the well.", "forest.well"),
+      c("f6", "Examine the carvings around the well.", "x", {
+        check: { skill: "lore", dc: 12, pass: "forest.carvings", fail: "forest.carvings_f" },
+      }),
+      c("f7", "Return to the forest path.", "forest.enter"),
+    ],
+    { voices: [
+      v("lore", "Forest wells are old. Older than villages, older than roads. They are places where the world is thin, where the boundary between what is and what was is not quite solid."),
+      v("perception", "The water is not still. There is a current, deep below, moving in a direction that does not match the land above."),
+    ] }),
+  N("forest.well", "forest",
+    "You drop a stone. It falls in silence for a long time — longer than it should, longer than the well is deep — and then there is a sound. Not a splash. A *voice*. Or something like a voice, something that might be the echo of a voice from a long time ago, caught in the stone and water and released now by the weight of your stone.\n\nThe sound is gone before you can be sure of it, but you felt it — a vibration in the air, in the stone, in your bones. The forest is very quiet now, as if it is listening too.",
+    [c("f8", "Step back from the well.", "forest.deep")],
+    { fx: [
+      { t: "stability", d: -5, reason: "The well spoke, and you heard it." },
+      { t: "ency", id: "forest_well", title: "The Forest Well", text: "A well in the forest, older than the village, with water that has no bottom. When you drop a stone, it does not splash. It speaks, or something like it speaks. The forest listens.", category: "Locations" },
+    ], voices: [
+      v("empathy", "The well is lonely. It has been waiting for someone to drop a stone for a very long time. It is grateful, in its way, but also sad. It knows you will not stay."),
+    ] }),
+  N("forest.stones", "forest",
+    "The carvings are old — very old, older than the village, older than the temple. They are not the work of the people who live here now. They are the work of someone else, someone who understood the forest in a way the current villagers do not.\n\nThe symbols are not quite language, not quite pictures. They are something in between — a way of recording something that cannot be recorded in words. You recognize some of them from the old sutras, from the foundation texts that speak of pillars and bindings. These stones are markers, you realize. They are marking a path, or a boundary, or a warning.",
+    [c("f9", "Note the symbols and continue.", "forest.deep")],
+    { fx: [
+      { t: "know", id: "forest_symbols", label: "The forest stones are carved with old symbols — markers or warnings from before the village." },
+      { t: "ency", id: "forest_stones", title: "The Forest Markers", text: "Stones along the forest path, carved with symbols older than the village. They are not language, not pictures, but something in between. They mark a path, or a boundary, or a warning.", category: "Lore" },
+    ] }),
+  N("forest.stones_f", "forest",
+    "The carvings are old, but their meaning is lost to you. You can see the shapes — hands, or branches, or something else — but you cannot read them. They are a language you do not know, a story you cannot understand. The forest keeps its secrets well.",
+    [c("f10", "Move on.", "forest.deep")],
+    { voices: [v("lore", "The stones are old. Very old. They were here before the village, before the temple, before the road. They will be here after, too. They do not need you to understand them.")] }),
+  N("forest.listen", "forest",
+    "You close your eyes and listen. The forest is not silent — it is full of sound. The wind in the branches, the creak of old wood, the distant sound of water. But underneath it all, there is something else. A rhythm. A pattern. The forest is breathing, and you can feel it in your chest, in your bones.\n\nWhen you open your eyes, the light has changed. It is later than it was, or earlier, or the same — you cannot tell. But the forest feels different now, as if it has accepted you, as if you are part of it for a moment.",
+    [c("f11", "Let the feeling pass.", "forest.deep")],
+    { fx: [
+      { t: "stability", d: 5, reason: "The forest accepted you, for a moment." },
+      { t: "mod", skill: "perception", d: 1, label: "Forest-touched" },
+    ], voices: [
+      v("empathy", "The forest is old, and it is tired, and it is grateful for your attention. It does not ask for much. Just to be heard, once in a while."),
+    ] }),
+  N("forest.listen_f", "forest",
+    "You listen, but the forest is just a forest. The wind, the wood, the water. There is nothing more, or if there is, it is not for you. The forest does not speak to everyone, and you are not one of the ones it chooses.",
+    [c("f12", "Continue walking.", "forest.deep")],
+    { voices: [v("perception", "The forest is quiet. Not silent — quiet. There is a difference. Silence is the absence of sound. Quiet is the presence of listening.")] }),
+  N("forest.carvings", "forest",
+    "The carvings around the well are the same as the ones on the path markers, but more detailed, more complex. They tell a story, or part of a story — a story of binding, of sacrifice, of a debt that was paid in stone and water and something else, something that cannot be named.\n\nYou recognize the patterns now. They are the same patterns you saw on the shrine, on the rope, on the names carved in the pillar. This well is connected to the shrine, to the village, to the arithmetic of grief. It is part of the same story, the same debt, the same silence.",
+    [c("f13", "Step back from the well.", "forest.deep")],
+    { fx: [
+      { t: "know", id: "well_connection", label: "The forest well is connected to the shrine — part of the same story, the same debt." },
+      { t: "ency", id: "well_shrine_connection", title: "The Well and the Shrine", text: "The forest well is carved with the same symbols as the shrine. It is part of the same story, the same debt, the same silence. The village is built on more than stone. It is built on water, and wood, and sacrifice.", category: "Theories" },
+    ], voices: [
+      v("reason", "The well is connected to the shrine. The symbols are the same. The story is the same. The village is not just a village. It is a monument, a memorial, a payment."),
+    ] }),
+  N("forest.carvings_f", "forest",
+    "The carvings are intricate, but their meaning escapes you. You can see the patterns, the repetitions, the care with which they were made, but you cannot read them. They are a language you do not know, a story you cannot understand. The well keeps its secrets, as wells do.",
+    [c("f14", "Step back.", "forest.deep")],
+    { voices: [v("lore", "The carvings are old. Very old. They were made by hands that understood something you do not. They will be here after you are gone, too. They do not need you to understand them.")] }),
+];
+
+const RIVER: GNode[] = [
+  N("river.bank", "river",
+    "The river is not large, but it is deep, and the water is dark — not the dark of mud or shadow, but the dark of iron, of something that has been in the earth too long and has taken on its qualities. The banks are steep, lined with smooth stones that have been polished by centuries of water, and the sound of the river is constant, a low murmur that is almost speech, almost song.\n\nThere is a bridge here, old and wooden, spanning the river at its narrowest point. The wood is grey with age, and the planks creak under your weight, but it holds. On the other side, the forest continues, but there is something different about it — a quality of attention, of waiting, that makes you hesitate.",
+    [
+      c("r1", "Cross the bridge.", "river.cross"),
+      c("r2", "Examine the water.", "x", {
+        check: { skill: "perception", dc: 11, pass: "river.water", fail: "river.water_f" },
+      }),
+      c("r3", "Follow the river upstream.", "river.upstream"),
+      c("r4", "Return to the village.", "hub.village"),
+    ],
+    { at: 20, voices: [
+      v("perception", "The water is iron-tasted. The children were right — the well water tastes of this. The river and the well are connected, somehow."),
+      v("lore", "Rivers are boundaries. They separate one thing from another, one story from another. This river is separating the village from something else, something older."),
+    ] }),
+  N("river.cross", "river",
+    "You cross the bridge, and the wood creaks and groans under your weight, but it holds. On the other side, the forest is different — darker, quieter, more attentive. The trees are older here, their trunks wider, their branches higher, and the light that filters through is green and thick, like the light in a cathedral.\n\nThe path continues, but it is narrower now, and it winds between the trees in a way that feels deliberate, as if it is leading you somewhere specific. You can hear the river behind you, constant and patient, and you know that when you turn back, it will still be there, still flowing, still keeping its secrets.",
+    [
+      c("r5", "Follow the path.", "river.deep"),
+      c("r6", "Turn back.", "river.bank"),
+    ],
+    { voices: [
+      v("empathy", "The forest on this side is older, and it remembers. It remembers things the village has forgotten, things the village is trying to forget. It is not hostile, but it is not welcoming either. It is simply watching."),
+    ] }),
+  N("river.deep", "river",
+    "The path leads deeper into the forest, and the trees grow taller, their branches intertwining overhead until the sky is just a memory. The air is cooler here, and damper, and the sound of the river is distant now, a murmur at the edge of hearing.\n\nAfter a while, the path opens into a small clearing, and there, in the center, is a stone circle. Not a circle of standing stones, like the ones you might find in the north, but a circle of boulders, arranged with deliberate care, their surfaces smooth and worn by time. In the center of the circle is a single stone, taller than the others, and on its surface is a carving — a single symbol, worn but still visible.\n\nThe symbol is the same one you saw on the well, on the path markers, on the shrine. It is the symbol of binding, of debt, of sacrifice. This place is part of the same story.",
+    [
+      c("r7", "Touch the central stone.", "x", {
+        check: { skill: "willpower", dc: 12, pass: "river.stone", fail: "river.stone_f" },
+      }),
+      c("r8", "Study the symbol.", "x", {
+        check: { skill: "lore", dc: 13, pass: "river.symbol", fail: "river.symbol_f" },
+      }),
+      c("r9", "Return to the river.", "river.cross"),
+    ],
+    { voices: [
+      v("lore", "This is a place of binding. The stones are arranged to hold something, to keep something in, or out. The symbol is the same one on the shrine. This place is part of the same story, the same debt."),
+      v("perception", "The air here is thick, heavy with meaning. The stones are old, very old, and they are waiting. They have been waiting for a long time."),
+    ] }),
+  N("river.stone", "forest",
+    "You touch the stone, and it is cold — colder than stone should be, colder than the air, colder than the water in the river. The cold goes into your hand, into your arm, into your chest, and for a moment you feel it — the weight of the debt, the weight of the names, the weight of the silence that has been kept for forty years.\n\nThe feeling passes, but the cold remains, a reminder of what you touched, of what you learned. The stone is part of the story, and now you are part of it too.",
+    [c("r10", "Step back.", "river.deep")],
+    { fx: [
+      { t: "stability", d: -10, reason: "You touched the binding stone, and it touched you back." },
+      { t: "know", id: "binding_stone", label: "You touched the binding stone in the forest. It is cold, and it remembers." },
+      { t: "ency", id: "binding_stone", title: "The Binding Stone", text: "A stone in a circle of boulders, carved with the symbol of binding. It is cold, colder than it should be, and when you touch it, you feel the weight of the debt, the names, the silence. It is part of the story, and now you are too.", category: "The Shrine" },
+    ], voices: [
+      v("empathy", "The stone is lonely. It has been waiting for someone to touch it for a very long time. It is grateful, in its way, but also sad. It knows you will not stay."),
+    ] }),
+  N("river.stone_f", "river",
+    "You reach for the stone, but something stops you — not a physical barrier, but a feeling, a sense of wrongness, of crossing a line you should not cross. Your hand trembles, and you pull it back, and the feeling passes, but the knowledge remains: the stone is not for you. Not yet. Maybe not ever.",
+    [c("r11", "Step back.", "river.deep")],
+    { fx: [{ t: "stability", d: -5, reason: "The stone rejected you, or you rejected it." }], voices: [
+      v("willpower", "The stone is not for you. Not yet. Maybe not ever. Some things are not meant to be touched, only witnessed."),
+    ] }),
+  N("river.symbol", "river",
+    "The symbol is complex, more complex than you first thought. It is not just a symbol of binding — it is a symbol of exchange, of debt, of sacrifice. It tells a story, or part of a story: something was given, something was taken, and the balance must be maintained. The symbol is a promise, and a warning.\n\nYou recognize it now, from the old texts, from the foundation sutras. It is the symbol of hitobashira — the human pillar, the foundation sacrifice. The village was built on this. The prosperity was bought with this. The debt is still being paid.",
+    [c("r12", "Note the symbol and step back.", "river.deep")],
+    { fx: [
+      { t: "know", id: "hitobashira_symbol", label: "The symbol on the stone is hitobashira — the human pillar, the foundation sacrifice. The village was built on this." },
+      { t: "ency", id: "hitobashira", title: "Hitobashira", text: "The symbol of hitobashira — the human pillar, the foundation sacrifice. The village was built on this. The prosperity was bought with this. The debt is still being paid.", category: "Lore" },
+    ], voices: [
+      v("lore", "Hitobashira. The human pillar. The foundation sacrifice. It was outlawed centuries ago, but the symbol is here, on the stone, in the forest. The village is built on something old, something terrible, something that cannot be undone."),
+    ] }),
+  N("river.symbol_f", "river",
+    "The symbol is complex, but its meaning escapes you. You can see the lines, the curves, the care with which it was carved, but you cannot read it. It is a language you do not know, a story you cannot understand. The stone keeps its secrets, as stones do.",
+    [c("r13", "Step back.", "river.deep")],
+    { voices: [v("lore", "The symbol is old. Very old. It was carved by hands that understood something you do not. It will be here after you are gone, too. It does not need you to understand it.")] }),
+  N("river.water", "river",
+    "You kneel by the river and look into the water. It is dark, but not opaque — you can see shapes moving beneath the surface, not fish, not debris, but something else. Shadows, maybe, or reflections of things that are not there. The water is iron-tasted, you realize, and the taste is familiar — it is the taste of the well water, the taste the children mentioned, the taste that no one speaks of.\n\nThe river and the well are connected. The water flows from one to the other, or maybe they both flow from the same source, the same deep place in the earth where the iron is strong and the memories are long.",
+    [c("r14", "Rise and continue.", "river.bank")],
+    { fx: [
+      { t: "know", id: "river_well_connection", label: "The river water tastes of iron, like the well. They are connected, somehow." },
+      { t: "ency", id: "river_well", title: "The River and the Well", text: "The river water tastes of iron, like the well water. They are connected, somehow — the water flows from one to the other, or maybe they both flow from the same source. The village is built on more than stone. It is built on water, and iron, and memory.", category: "Theories" },
+    ], voices: [
+      v("perception", "The water is iron-tasted. The children were right. The well water tastes of this. The river and the well are connected, somehow."),
+    ] }),
+  N("river.water_f", "river",
+    "You look into the water, but it is just water — dark, deep, moving. There is nothing more, or if there is, it is not for you. The river keeps its secrets, as rivers do.",
+    [c("r15", "Rise and continue.", "river.bank")],
+    { voices: [v("perception", "The water is just water. Dark, deep, moving. There is nothing more, or if there is, it is not for you. The river keeps its secrets.")] }),
+  N("river.upstream", "river",
+    "You follow the river upstream, and the banks grow steeper, the water swifter, the forest denser. The sound of the water is louder here, a constant rush that fills the air, and the mist is thicker, clinging to the trees and the stones and your skin.\n\nAfter a while, the river narrows, and you can see its source — a spring, bubbling up from the earth, clear and cold and strong. The water here is not iron-tasted. It is pure, clean, untainted. This is where the river begins, before it flows down to the village, before it picks up the iron, before it becomes what it becomes.\n\nThe spring is small, barely a meter across, but it is deep, and the water is cold, and there is something about it that feels old, older than the village, older than the forest, older than the mountain itself.",
+    [c("r16", "Note the source and return.", "river.bank")],
+    { fx: [
+      { t: "ency", id: "river_source", title: "The River's Source", text: "The river begins at a spring, small and deep and cold. The water here is pure, clean, untainted. This is where the river begins, before it flows down to the village, before it picks up the iron, before it becomes what it becomes.", category: "Locations" },
+    ], voices: [
+      v("perception", "The spring is pure. Clean. Untainted. This is where the river begins, before it becomes what it becomes. The iron is picked up downstream, in the village, in the well, in the debt."),
+    ] }),
+];
+
+const MILL: GNode[] = [
+  N("mill.approach", "mill",
+    "The old mill stands at the edge of the village, where the river slows and widens before it reaches the valley below. It is a large building, larger than it needs to be, with a waterwheel that has not turned in years — the wood is grey and cracked, the blades broken, the whole structure leaning slightly to one side as if it is tired of standing.\n\nThe mill was once the heart of the village, the place where grain was ground, where the harvest was processed, where the prosperity of the village was made real. Now it is empty, abandoned, a monument to a time before the seal, before the silence, before the debt came due.\n\nThe door is unlocked, and it opens with a groan of old wood, and inside, the air is thick with dust and the smell of old grain, and the sound of the river outside is constant, patient, waiting.",
+    [
+      c("m1", "Enter the mill.", "mill.inside"),
+      c("m2", "Examine the waterwheel.", "x", {
+        check: { skill: "perception", dc: 10, pass: "mill.wheel", fail: "mill.wheel_f" },
+      }),
+      c("m3", "Return to the village.", "hub.village"),
+    ],
+    { at: 25, voices: [
+      v("lore", "The mill is old. Older than the village, maybe. It was here before the seal, before the silence, before the debt. It remembers what the village has forgotten."),
+      v("empathy", "The mill is tired. It has been standing for a long time, and it is tired of standing. It wants to fall, but it cannot, not yet. It is waiting for something, or someone, to let it go."),
+    ] }),
+  N("mill.inside", "mill",
+    "Inside, the mill is a cathedral of wood and shadow. The beams are massive, older than the village, older than the temple, and they are carved with symbols — not the symbols of binding, but the symbols of work, of harvest, of prosperity. This was a place of plenty, once, a place where the village's wealth was made real, where the grain was ground and the flour was sifted and the bread was baked.\n\nNow it is empty. The grinding stones are still, the hoppers are empty, the sacks are gone. The only sound is the drip of water from a leak in the roof, and the constant murmur of the river outside. The mill is a monument to what was, and what is no longer.",
+    [
+      c("m4", "Search for anything left behind.", "x", {
+        check: { skill: "perception", dc: 11, pass: "mill.search", fail: "mill.search_f" },
+      }),
+      c("m5", "Examine the carvings on the beams.", "x", {
+        check: { skill: "lore", dc: 12, pass: "mill.carvings", fail: "mill.carvings_f" },
+      }),
+      c("m6", "Return outside.", "mill.approach"),
+    ],
+    { voices: [
+      v("perception", "The mill is empty, but it is not abandoned. There is a difference. Abandoned means forgotten. Empty means waiting."),
+    ] }),
+  N("mill.search", "mill",
+    "You search the mill, carefully, methodically, and in the back, in a corner where the dust is thickest, you find something. A ledger. Not the elder's ledger, not the true ledger, but a different one — the miller's ledger, the record of what was ground, what was stored, what was distributed.\n\nThe ledger is old, older than the elder, older than the village's current prosperity. The entries are meticulous, the handwriting careful, and they tell a story — a story of plenty, of harvest, of prosperity. But then, halfway through, the entries change. The handwriting becomes hurried, the entries shorter, and then they stop. The last entry is a single line: *The debt is called. The mill is closed. The silence begins.*\n\nThe ledger is a record of the village's prosperity, and its end.",
+    [c("m7", "Take the ledger.", "mill.inside")],
+    { fx: [
+      { t: "item", id: "mill_ledger", add: true, label: "The miller's ledger — a record of prosperity, and its end." },
+      { t: "know", id: "mill_ledger", label: "The miller's ledger records the village's prosperity, and its end. The last entry: 'The debt is called. The mill is closed. The silence begins.'" },
+      { t: "ency", id: "mill_ledger_entry", title: "The Miller's Ledger", text: "A ledger found in the old mill, recording the village's prosperity and its end. The last entry: 'The debt is called. The mill is closed. The silence begins.' The mill was the heart of the village, and when it closed, the village changed.", category: "History" },
+    ], voices: [
+      v("reason", "The ledger is a record of the village's prosperity, and its end. The mill was the heart of the village, and when it closed, the village changed. The debt was called, and the silence began."),
+    ] }),
+  N("mill.search_f", "mill",
+    "You search the mill, but it is empty. The dust is thick, the cobwebs are old, and there is nothing left. The mill has been abandoned for a long time, and everything of value has been taken, or has rotted away. The only thing left is the silence, and the sound of the river outside.",
+    [c("m8", "Continue searching.", "mill.inside")],
+    { voices: [v("perception", "The mill is empty. Everything of value has been taken, or has rotted away. The only thing left is the silence, and the sound of the river.")] }),
+  N("mill.carvings", "mill",
+    "The carvings on the beams are old, older than the village, older than the temple. They are not the symbols of binding, but the symbols of work, of harvest, of prosperity. They tell a story — a story of plenty, of harvest, of prosperity. But then, halfway along the beam, the carvings change. The symbols become different, darker, and then they stop. The last carving is a single symbol — the symbol of binding, of debt, of sacrifice.\n\nThe mill was built before the seal, before the silence, before the debt. It was a place of plenty, and then it became a place of debt, and then it was abandoned. The carvings tell the story, if you know how to read them.",
+    [c("m9", "Note the carvings.", "mill.inside")],
+    { fx: [
+      { t: "know", id: "mill_carvings", label: "The mill beams are carved with symbols of prosperity, and then binding. The mill was built before the seal, and abandoned after." },
+      { t: "ency", id: "mill_carvings_entry", title: "The Mill Carvings", text: "The mill beams are carved with symbols of prosperity, and then binding. The mill was built before the seal, before the silence, before the debt. It was a place of plenty, and then it became a place of debt, and then it was abandoned.", category: "Lore" },
+    ], voices: [
+      v("lore", "The carvings tell the story. The mill was built before the seal, before the silence, before the debt. It was a place of plenty, and then it became a place of debt, and then it was abandoned. The carvings tell the story, if you know how to read them."),
+    ] }),
+  N("mill.carvings_f", "mill",
+    "The carvings are old, but their meaning escapes you. You can see the shapes, the patterns, the care with which they were made, but you cannot read them. They are a language you do not know, a story you cannot understand. The mill keeps its secrets, as mills do.",
+    [c("m10", "Move on.", "mill.inside")],
+    { voices: [v("lore", "The carvings are old. Very old. They were made by hands that understood something you do not. They will be here after you are gone, too. They do not need you to understand them.")] }),
+  N("mill.wheel", "mill",
+    "The waterwheel is massive, larger than you expected, and it is old — very old, the wood grey and cracked, the blades broken, the whole structure leaning slightly to one side. It has not turned in years, maybe decades, and the river flows past it, constant and patient, ignoring the wheel that was built to harness it.\n\nThe wheel is a monument to what was, and what is no longer. It was built to grind grain, to process the harvest, to make the village's prosperity real. Now it is just wood and iron and silence, and the river flows past it, constant and patient, waiting for nothing.",
+    [c("m11", "Note the wheel.", "mill.approach")],
+    { fx: [
+      { t: "ency", id: "mill_wheel", title: "The Mill Waterwheel", text: "The mill waterwheel is massive, old, and broken. It has not turned in years, maybe decades. It was built to grind grain, to process the harvest, to make the village's prosperity real. Now it is just wood and iron and silence.", category: "Locations" },
+    ], voices: [
+      v("perception", "The wheel is old. Very old. It was built to harness the river, to make the village's prosperity real. Now it is just wood and iron and silence. The river flows past it, constant and patient, waiting for nothing."),
+    ] }),
+  N("mill.wheel_f", "mill",
+    "The waterwheel is old, broken, silent. It has not turned in years, and the river flows past it, constant and patient, ignoring the wheel that was built to harness it. The wheel is a monument to what was, and what is no longer.",
+    [c("m12", "Move on.", "mill.approach")],
+    { voices: [v("perception", "The wheel is old. Broken. Silent. It has not turned in years. The river flows past it, constant and patient, waiting for nothing.")] }),
+];
+
+const CAVE: GNode[] = [
+  N("cave.entrance", "cave",
+    "The cave is hidden in the mountainside, above the village, above the temple, above the sealed path. It is small, barely large enough for a person to enter, and the entrance is concealed by a curtain of moss and ferns that makes it almost invisible unless you are looking for it.\n\nThe cave is not on any map, and the villagers do not speak of it, but you found it — or it found you. The entrance is dark, and the air that flows from it is cold and damp, smelling of stone and water and something else, something older, something that might be the ghost of a fire that burned a long time ago.\n\nThe cave is a place of secrets, and you are about to learn what they are.",
+    [
+      c("c1", "Enter the cave.", "cave.inside"),
+      c("c2", "Examine the entrance.", "x", {
+        check: { skill: "perception", dc: 12, pass: "cave.entrance_exam", fail: "cave.entrance_exam_f" },
+      }),
+      c("c3", "Return to the mountain.", "hub.village"),
+    ],
+    { at: 40, voices: [
+      v("perception", "The cave is hidden, but not well. Someone wanted it to be found, but only by someone who was looking. You are looking, and so you found it."),
+      v("empathy", "The cave is lonely. It has been waiting for someone to enter for a very long time. It is grateful, in its way, but also sad. It knows you will not stay."),
+    ] }),
+  N("cave.inside", "cave",
+    "Inside, the cave is small, but it is deep, and the walls are smooth, polished by water and time. The air is cold and damp, and the sound of your breathing is loud in the silence. There is no light, except the faint glow from the entrance behind you, and as you move deeper, even that fades, and you are in darkness.\n\nBut the darkness is not complete. There is a light, somewhere ahead, a faint glow that might be phosphorescent moss, or might be something else, something older, something that has been waiting for you.\n\nYou follow the light, and the cave narrows, and then opens, and you are in a chamber, small and round, and in the center of the chamber is a stone, and on the stone is a book.",
+    [
+      c("c4", "Approach the book.", "cave.book"),
+      c("c5", "Examine the chamber.", "x", {
+        check: { skill: "perception", dc: 13, pass: "cave.chamber", fail: "cave.chamber_f" },
+      }),
+      c("c6", "Return to the entrance.", "cave.entrance"),
+    ],
+    { voices: [
+      v("lore", "The cave is old. Very old. Older than the village, older than the temple, older than the mountain. It was here before the first stone was laid, before the first tree grew, before the first person came. It is a place of memory, and the book is a record of that memory."),
+    ] }),
+  N("cave.book", "cave",
+    "The book is old, older than anything you have seen, and it is bound in leather that has cracked and faded with time. The pages are thin, almost translucent, and the writing is in a script you do not recognize — not the old script of the temple, not the script of the capital, but something else, something older, something that was old when the village was young.\n\nYou cannot read it, but you can feel it — the weight of the words, the weight of the story, the weight of the memory. The book is a record of the cave, and the village, and the debt, and the silence. It is a record of everything, and nothing, and the story it tells is the story of the mountain, and the village, and the people who came before, and the people who will come after.\n\nThe book is the memory of the mountain, and you are holding it in your hands.",
+    [c("c7", "Close the book.", "cave.inside")],
+    { fx: [
+      { t: "ency", id: "cave_book", title: "The Book in the Cave", text: "A book in a cave, older than anything you have seen. The writing is in a script you do not recognize, but you can feel the weight of the words, the story, the memory. The book is a record of the cave, the village, the debt, the silence. It is the memory of the mountain.", category: "Lore" },
+      { t: "stability", d: -5, reason: "You held the memory of the mountain, and it changed you." },
+    ], voices: [
+      v("lore", "The book is the memory of the mountain. It is older than the village, older than the temple, older than the mountain itself. It is a record of everything, and nothing, and the story it tells is the story of the world."),
+    ] }),
+  N("cave.chamber", "cave",
+    "The chamber is small, but it is perfect — round, smooth, polished by water and time. The walls are covered in carvings, not the symbols of binding, but the symbols of memory, of story, of history. They tell a story, or part of a story — a story of the mountain, and the village, and the people who came before, and the people who will come after.\n\nThe carvings are old, very old, and they are beautiful, and they are sad. They tell a story of loss, of sacrifice, of debt, and they tell it in a language you do not know, but you can feel it, in your bones, in your heart, in your memory.\n\nThe chamber is a place of memory, and you are standing in it, and the memory is changing you.",
+    [c("c8", "Step back.", "cave.inside")],
+    { fx: [
+      { t: "ency", id: "cave_chamber", title: "The Chamber of Memory", text: "A chamber in the cave, covered in carvings that tell a story of the mountain, the village, the people who came before, and the people who will come after. The carvings are old, beautiful, and sad. They tell a story of loss, of sacrifice, of debt. The chamber is a place of memory.", category: "Locations" },
+      { t: "stability", d: 5, reason: "You stood in the chamber of memory, and it accepted you." },
+    ], voices: [
+      v("empathy", "The chamber is beautiful, and it is sad. It tells a story of loss, of sacrifice, of debt, and it tells it in a language you do not know, but you can feel it, in your bones, in your heart, in your memory."),
+    ] }),
+  N("cave.chamber_f", "cave",
+    "The chamber is small, and dark, and cold. You cannot see much, and what you can see is just stone, and shadow, and silence. There is nothing more, or if there is, it is not for you. The cave keeps its secrets, as caves do.",
+    [c("c9", "Step back.", "cave.inside")],
+    { voices: [v("perception", "The chamber is just stone, and shadow, and silence. There is nothing more, or if there is, it is not for you. The cave keeps its secrets.")] }),
+  N("cave.entrance_exam", "cave",
+    "The entrance is hidden, but not well. The moss and ferns are arranged deliberately, to conceal the entrance from casual observers, but to reveal it to someone who is looking. The stones around the entrance are carved with the same symbols you saw in the forest, on the well, on the shrine. They are markers, or warnings, or both.\n\nThe cave is a place of secrets, and the entrance is a test — a test of perception, of attention, of intention. You passed the test, and now you are here, and the cave is waiting for you.",
+    [c("c10", "Enter the cave.", "cave.inside")],
+    { fx: [
+      { t: "know", id: "cave_entrance", label: "The cave entrance is hidden, but deliberately so. It is a test of perception, and you passed." },
+      { t: "ency", id: "cave_entrance_entry", title: "The Cave Entrance", text: "The cave entrance is hidden by moss and ferns, but deliberately so. The stones around the entrance are carved with symbols — markers, or warnings, or both. The cave is a place of secrets, and the entrance is a test.", category: "Locations" },
+    ], voices: [
+      v("perception", "The entrance is hidden, but not well. It is a test of perception, of attention, of intention. You passed the test, and now you are here."),
+    ] }),
+  N("cave.entrance_exam_f", "cave",
+    "The entrance is hidden, and you cannot see how it is concealed. The moss and ferns are just moss and ferns, the stones are just stones, and there is nothing more, or if there is, it is not for you. The cave keeps its secrets, as caves do.",
+    [c("c11", "Try again.", "cave.entrance")],
+    { voices: [v("perception", "The entrance is hidden, and you cannot see how. The cave keeps its secrets, as caves do.")] }),
+];
+
+/* ================================= ASSEMBLY ================================= */
+
+export const NODES: Record<string, GNode> = Object.fromEntries(
+  [...ARRIVAL, ...GATE, ...HUB, ...RAN, ...KENTA, ...JIKAI, ...ELDER, ...SAYO, ...PATH, ...SHRINE, ...EPILOGUES, ...FOREST, ...RIVER, ...MILL, ...CAVE].map(
+    (n) => [n.id, n],
+  ),
+);
+
+bindNodeLookup((id) => NODES[id]);
+
+const CONTENT_ERRORS = validateContent(NODES);
+if (CONTENT_ERRORS.length > 0) {
+  // Fail loudly on invalid authoring data.
+  console.error("[kirifushi] content validation failed:\n" + CONTENT_ERRORS.join("\n"));
+}
+export const contentErrors: string[] = CONTENT_ERRORS;

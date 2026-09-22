@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { GameState, Loc } from "../game/types";
 import { LOCS } from "../game/types";
 import { IMG_MAP } from "./images";
@@ -6,12 +6,13 @@ import Ambient from "./Ambient";
 
 interface MapLocation {
   id: Loc;
-  x: number; // percentage from left
-  y: number; // percentage from top
+  x: number;
+  y: number;
   name: string;
   kanji: string;
   desc: string;
   unlocked: boolean;
+  hasEvent?: boolean;
 }
 
 interface Path {
@@ -29,6 +30,10 @@ const PATHS: Path[] = [
   { from: "road", to: "gate" },
   { from: "gate", to: "village" },
   { from: "village", to: "temple" },
+  { from: "village", to: "forest" },
+  { from: "forest", to: "river" },
+  { from: "river", to: "mill" },
+  { from: "temple", to: "cave" },
   { from: "village", to: "path", sealed: true },
   { from: "path", to: "shrine", sealed: true },
 ];
@@ -36,59 +41,71 @@ const PATHS: Path[] = [
 export default function MapView({ state, onLocationClick }: Props) {
   const [hoveredLoc, setHoveredLoc] = useState<Loc | null>(null);
   const [isMoving, setIsMoving] = useState(false);
-  const [animPos, setAnimPos] = useState({ x: 0, y: 0 });
+  const animationRef = useRef<number | null>(null);
+  const [charPos, setCharPos] = useState({ x: 0, y: 0 });
 
-  // Map locations with their positions (percentages)
+  // Map locations with their positions
   const locations: MapLocation[] = useMemo(() => [
     { id: "road", x: 12, y: 22, name: "Mountain Road", kanji: "道", desc: "The misty road that ends where the village begins.", unlocked: true },
     { id: "gate", x: 28, y: 38, name: "Village Gate", kanji: "門", desc: "Genji's post. The gate that keeps the village's secrets.", unlocked: true },
     { id: "village", x: 48, y: 52, name: "Kagerou Square", kanji: "村", desc: "The heart of the village. The well, the stalls, the elder's house.", unlocked: state.flags["entered"] || false },
     { id: "temple", x: 72, y: 28, name: "Mountain Temple", kanji: "寺", desc: "Jikai's stair. The bell that rings for the dead.", unlocked: state.flags["entered"] || false },
+    { id: "forest", x: 20, y: 65, name: "Whispering Forest", kanji: "森", desc: "The forest where the trees remember what the village has forgotten.", unlocked: state.flags["entered"] || false },
+    { id: "river", x: 35, y: 75, name: "Iron River", kanji: "川", desc: "The river that tastes of iron and memory.", unlocked: state.flags["entered"] || false },
+    { id: "mill", x: 60, y: 70, name: "Old Mill", kanji: "臼", desc: "The mill that ground the village's prosperity, and its end.", unlocked: state.flags["entered"] || false },
+    { id: "cave", x: 85, y: 15, name: "Hermit's Cave", kanji: "穴", desc: "The cave where the mountain keeps its oldest memories.", unlocked: Object.keys(state.knowledge).length >= 3 },
     { id: "path", x: 82, y: 58, name: "Sealed Path", kanji: "坂", desc: "The rope gate. Beyond lies what the village has buried.", unlocked: Object.keys(state.knowledge).length >= 2 },
     { id: "shrine", x: 90, y: 76, name: "Mistbound Shrine", kanji: "祠", desc: "The shrine that is not on any map. Six names wait beneath the stone.", unlocked: state.knowledge["the_names"] !== undefined },
   ], [state.flags, state.knowledge]);
 
-  // Update character position when location changes
+  // Update character position when location changes (no animation during state sync)
   useEffect(() => {
     const loc = locations.find(l => l.id === state.loc);
-    if (loc) {
-      setAnimPos({ x: loc.x, y: loc.y });
+    if (loc && !isMoving) {
+      setCharPos({ x: loc.x, y: loc.y });
     }
-  }, [state.loc, locations]);
+  }, [state.loc, locations, isMoving]);
+
+  // Cleanup animation on unmount
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
 
   const handleLocationClick = (loc: MapLocation) => {
     if (!loc.unlocked || loc.id === state.loc || isMoving) return;
 
     setIsMoving(true);
     const target = { x: loc.x, y: loc.y };
-
-    // Animate movement over ~1.2 seconds
-    const start = { ...animPos };
-    const duration = 1200;
+    const start = { ...charPos };
+    const duration = 1000;
     const startTime = Date.now();
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
 
-      setAnimPos({
+      setCharPos({
         x: start.x + (target.x - start.x) * eased,
         y: start.y + (target.y - start.y) * eased,
       });
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animationRef.current = requestAnimationFrame(animate);
       } else {
+        animationRef.current = null;
         setIsMoving(false);
         onLocationClick(loc.id);
       }
     };
 
-    requestAnimationFrame(animate);
+    animationRef.current = requestAnimationFrame(animate);
   };
 
-  // Calculate path coordinates for SVG lines
   const getPathCoords = (path: Path) => {
     const from = locations.find(l => l.id === path.from);
     const to = locations.find(l => l.id === path.to);
@@ -104,6 +121,7 @@ export default function MapView({ state, onLocationClick }: Props) {
           src={IMG_MAP}
           alt="Kagerou Village Map"
           className="w-full h-full object-cover opacity-75"
+          draggable={false}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-ink-950/50 via-transparent to-ink-950/70" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink-950/40 via-transparent to-ink-950/40" />
@@ -120,7 +138,6 @@ export default function MapView({ state, onLocationClick }: Props) {
           const isAccessible = !path.sealed || locations.find(l => l.id === path.to)?.unlocked;
           return (
             <g key={i}>
-              {/* Path line */}
               <line
                 x1={`${coords.x1}%`}
                 y1={`${coords.y1}%`}
@@ -131,7 +148,6 @@ export default function MapView({ state, onLocationClick }: Props) {
                 strokeDasharray={path.sealed ? "6 4" : "0"}
                 opacity={isAccessible ? 0.5 : 0.25}
               />
-              {/* Seal marker for sealed paths */}
               {path.sealed && !isAccessible && (
                 <g>
                   <circle
@@ -244,11 +260,12 @@ export default function MapView({ state, onLocationClick }: Props) {
 
       {/* Character marker */}
       <div
-        className="absolute transform -translate-x-1/2 -translate-y-full pointer-events-none transition-none"
+        className="absolute transform -translate-x-1/2 -translate-y-full pointer-events-none"
         style={{
-          left: `${animPos.x}%`,
-          top: `${animPos.y}%`,
+          left: `${charPos.x}%`,
+          top: `${charPos.y}%`,
           zIndex: 15,
+          transition: isMoving ? 'none' : 'left 0.3s ease, top 0.3s ease',
         }}
       >
         <div className="relative flex flex-col items-center">
@@ -265,15 +282,12 @@ export default function MapView({ state, onLocationClick }: Props) {
             </div>
             {/* Head */}
             <div className="w-5 h-5 rounded-full bg-paper-300 border-2 border-ink-800 mx-auto relative">
-              {/* Face hint */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-0.5 bg-ink-700 rounded-full" />
             </div>
             {/* Body (traveler's coat) */}
             <div className="relative w-7 h-8 mx-auto mt-[-1px]">
               <div className="absolute inset-0 bg-shu-500 border-2 border-ink-800 rounded-sm" />
-              {/* Coat details */}
               <div className="absolute top-1 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-ink-800" />
-              {/* Belt */}
               <div className="absolute top-4 left-0 right-0 h-1 bg-ink-800" />
             </div>
             {/* Walking stick (when moving) */}
@@ -305,7 +319,6 @@ export default function MapView({ state, onLocationClick }: Props) {
         <svg viewBox="0 0 100 100" className="w-full h-full opacity-60">
           <circle cx="50" cy="50" r="45" fill="none" stroke="#c8a24b" strokeWidth="1" opacity="0.4" />
           <circle cx="50" cy="50" r="35" fill="none" stroke="#c8a24b" strokeWidth="0.5" opacity="0.3" />
-          {/* Cardinal points */}
           <polygon points="50,10 47,45 53,45" fill="#c8a24b" opacity="0.8" />
           <polygon points="50,90 47,55 53,55" fill="#8a7c5d" opacity="0.6" />
           <polygon points="10,50 45,47 45,53" fill="#8a7c5d" opacity="0.6" />
@@ -368,7 +381,6 @@ export default function MapView({ state, onLocationClick }: Props) {
         </div>
       </div>
 
-      {/* Custom animation styles */}
       <style>{`
         @keyframes bounce-subtle {
           0%, 100% { transform: translateY(0); }

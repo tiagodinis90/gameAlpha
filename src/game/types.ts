@@ -19,11 +19,20 @@ export type FactionId = "village" | "temple" | "guild" | "keepers";
 
 export type NpcId = "genji" | "ochiba" | "kenta" | "jikai" | "ran" | "sayo";
 
-export type Loc = "road" | "gate" | "village" | "temple" | "path" | "shrine";
+export type Loc = "road" | "gate" | "village" | "temple" | "path" | "shrine" | "forest" | "river" | "mill" | "cave";
 
 export type Weather = "clear" | "fog" | "rain";
 
 export type Period = "dawn" | "morning" | "noon" | "evening" | "night";
+
+// Citizen Sleeper-inspired systems
+export type StatusEffect = "exhausted" | "inspired" | "wounded" | "blessed" | "cursed" | "fearful" | "determined";
+
+export interface StabilityState {
+  current: number; // 0-100
+  max: number;
+  lastChange: string; // description of what changed it
+}
 
 /* ------------------------------ conditions -------------------------------- */
 
@@ -75,7 +84,11 @@ export type Effect =
   | { t: "theory"; id: string; title: string; description: string }
   | { t: "ency"; id: string; title: string; text: string; category: string }
   | { t: "redcheck"; id: string; label: string }
-  | { t: "dream"; id: string; title: string };
+  | { t: "dream"; id: string; title: string }
+  // Citizen Sleeper inspired
+  | { t: "stability"; d: number; reason: string }
+  | { t: "energy"; d: number }
+  | { t: "status"; effect: StatusEffect; add: boolean };
 
 /* -------------------------------- dialogue -------------------------------- */
 
@@ -180,6 +193,12 @@ export interface GameState {
   encyclopaedia: Record<string, { title: string; text: string; category: string }>; // lore entries
   redChecks: string[]; // red check ids already attempted
   dreams: string[]; // dream sequence ids seen
+  
+  // Citizen Sleeper-inspired systems
+  stability: StabilityState; // mental/physical stability
+  statusEffects: StatusEffect[]; // current status effects
+  energy: number; // 0-5, Citizen Sleeper-style dice pool
+  maxEnergy: number;
 }
 
 export type Outcome = "crit-fail" | "fail" | "partial" | "success" | "crit-success";
@@ -240,6 +259,10 @@ export const LOCS: Record<Loc, { name: string; kanji: string }> = {
   temple: { name: "The Mountain Temple", kanji: "寺" },
   path: { name: "The Sealed Path", kanji: "坂" },
   shrine: { name: "The Mistbound Shrine", kanji: "祠" },
+  forest: { name: "The Whispering Forest", kanji: "森" },
+  river: { name: "The Iron River", kanji: "川" },
+  mill: { name: "The Old Mill", kanji: "臼" },
+  cave: { name: "The Hermit's Cave", kanji: "穴" },
 };
 
 export const SAVE_KEY = "kirifushi.save.v1";

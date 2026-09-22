@@ -24,6 +24,10 @@ const LOCATION_ENTRY_NODES: Record<Loc, string> = {
   temple: "jikai.meet",
   path: "path.gate",
   shrine: "shrine.approach",
+  forest: "forest.enter",
+  river: "river.bank",
+  mill: "mill.approach",
+  cave: "cave.entrance",
 };
 
 type Screen = "title" | "codex" | "game";

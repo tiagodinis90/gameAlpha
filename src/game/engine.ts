@@ -271,6 +271,30 @@ function applyEffect(s: GameState, e: Effect): void {
         push(s, { kind: "chapter", text: `Dream remembered — ${e.title}`, tone: "neutral" });
       }
       break;
+    // Citizen Sleeper inspired
+    case "stability":
+      s.stability.current = clamp(s.stability.current + e.d, 0, s.stability.max);
+      s.stability.lastChange = e.reason;
+      push(s, {
+        kind: "system",
+        text: `Stability ${e.d > 0 ? "+" : ""}${e.d} — ${e.reason}`,
+        tone: e.d > 0 ? "good" : "bad",
+      });
+      break;
+    case "energy":
+      s.energy = clamp(s.energy + e.d, 0, s.maxEnergy);
+      break;
+    case "status":
+      if (e.add) {
+        if (!s.statusEffects.includes(e.effect)) {
+          s.statusEffects.push(e.effect);
+          push(s, { kind: "system", text: `Status gained — ${e.effect}`, tone: "neutral" });
+        }
+      } else {
+        s.statusEffects = s.statusEffects.filter((eff) => eff !== e.effect);
+        push(s, { kind: "system", text: `Status lost — ${e.effect}`, tone: "neutral" });
+      }
+      break;
   }
 }
 
@@ -400,6 +424,11 @@ export function newGame(buildId: string): GameState {
     encyclopaedia: {},
     redChecks: [],
     dreams: [],
+    // Citizen Sleeper inspired
+    stability: { current: 80, max: 100, lastChange: "You arrive steady and alert." },
+    statusEffects: [],
+    energy: 3,
+    maxEnergy: 5,
   };
   return s;
 }
@@ -532,6 +561,11 @@ function migrate(s: GameState): GameState {
   if (!out.encyclopaedia) out = { ...out, encyclopaedia: {} };
   if (!out.redChecks) out = { ...out, redChecks: [] };
   if (!out.dreams) out = { ...out, dreams: [] };
+  // v2 → v3: add Citizen Sleeper systems
+  if (!out.stability) out = { ...out, stability: { current: 80, max: 100, lastChange: "You arrive steady and alert." } };
+  if (!out.statusEffects) out = { ...out, statusEffects: [] };
+  if (typeof out.energy !== "number") out = { ...out, energy: 3 };
+  if (typeof out.maxEnergy !== "number") out = { ...out, maxEnergy: 5 };
   return out;
 }
 
