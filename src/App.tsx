@@ -12,7 +12,19 @@ import DialogueLog from "./components/DialogueLog";
 import Sidebar from "./components/Sidebar";
 import SkillCheckOverlay from "./components/SkillCheckOverlay";
 import Ambient from "./components/Ambient";
+import MapView from "./components/MapView";
 import { IMG_SHRINE, IMG_TITLE, IMG_VILLAGE } from "./components/images";
+import type { Loc } from "./game/types";
+
+// Map location to dialogue entry node
+const LOCATION_ENTRY_NODES: Record<Loc, string> = {
+  road: "arr.1",
+  gate: "gate.meet",
+  village: "hub.village",
+  temple: "jikai.meet",
+  path: "path.gate",
+  shrine: "shrine.approach",
+};
 
 type Screen = "title" | "codex" | "game";
 
@@ -53,6 +65,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, null);
   const [overlay, setOverlay] = useState<{ choice: Choice; roll: RollResult } | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
   const [hasSaveData, setHasSaveData] = useState(false);
   const [endingsMeta, setEndingsMeta] = useState(loadEndingsMeta());
@@ -113,6 +126,17 @@ export default function App() {
     dispatch({ type: "CHOOSE", choice: overlay.choice, roll: overlay.roll });
     setOverlay(null);
   }, [overlay]);
+
+  const onMapLocationClick = useCallback((loc: Loc) => {
+    if (!state) return;
+    const entryNode = LOCATION_ENTRY_NODES[loc];
+    if (entryNode) {
+      // Transition to the location's entry dialogue node
+      const newState = enterFromId(state, entryNode);
+      dispatch({ type: "LOAD", state: newState });
+      setShowMap(false);
+    }
+  }, [state]);
 
   /* keyboard: 1..9 pick choices; Enter confirms dice */
   useEffect(() => {
@@ -195,15 +219,23 @@ export default function App() {
       {/* top bar */}
       <div className="relative z-20 flex items-center justify-between border-b border-ink-700/70 bg-ink-950/70 px-4 py-2.5 backdrop-blur-sm md:px-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center border border-gold-700/60 bg-ink-900 font-display text-sm font-bold text-gold-400">
+          <button
+            onClick={() => setShowMap(true)}
+            className="flex h-8 w-8 items-center justify-center border border-gold-700/60 bg-ink-900 font-display text-sm font-bold text-gold-400 transition-all hover:border-gold-400 hover:bg-ink-800 hover:scale-105"
+            title="Open Map"
+          >
             {loc.kanji}
-          </span>
-          <div>
+          </button>
+          <button
+            onClick={() => setShowMap(true)}
+            className="text-left transition-colors hover:text-gold-300"
+            title="Open Map"
+          >
             <div className="font-display text-sm font-bold tracking-[0.15em] text-paper-100">{loc.name.toUpperCase()}</div>
             <div className="font-body text-[10px] uppercase tracking-[0.25em] text-paper-700">
               Day {dayOf(state.minutes)} · {clockOf(state.minutes)} · {periodName(periodOf(state.minutes))}
             </div>
-          </div>
+          </button>
           <span
             className="ml-2 flex items-center gap-1.5 border border-ink-600 bg-ink-900/70 px-2 py-1 font-body text-[10px] uppercase tracking-[0.2em] text-paper-500"
             title={`Weather: ${wmeta.label}`}
@@ -213,6 +245,16 @@ export default function App() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMap((v) => !v)}
+            className={`border px-3 py-1.5 font-body text-[10px] uppercase tracking-[0.25em] transition-all duration-300 ${
+              showMap
+                ? "border-gold-400/70 text-gold-300 bg-gold-500/10"
+                : "border-ink-600 text-paper-500 hover:border-gold-500/60 hover:text-gold-300"
+            }`}
+          >
+            {showMap ? "Story 語" : "Map 図"}
+          </button>
           <button
             onClick={() => {
               saveGame(state);
@@ -247,16 +289,23 @@ export default function App() {
 
       {/* main row */}
       <div className="relative z-10 flex h-[calc(100%-53px)]">
-        <div className="min-w-0 flex-1">
-          <DialogueLog
-            state={state}
-            choices={node.choices}
-            onPick={onPick}
-            done={state.done}
-            endingKanji={endingMeta?.kanji}
-            endingTitle={endingMeta?.title}
-            onLeave={onLeave}
-          />
+        <div className="min-w-0 flex-1 relative">
+          {/* Map view with fade transition */}
+          <div className={`absolute inset-0 transition-opacity duration-500 ${showMap ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+            <MapView state={state} onLocationClick={onMapLocationClick} />
+          </div>
+          {/* Dialogue view with fade transition */}
+          <div className={`transition-opacity duration-500 ${showMap ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+            <DialogueLog
+              state={state}
+              choices={node.choices}
+              onPick={onPick}
+              done={state.done}
+              endingKanji={endingMeta?.kanji}
+              endingTitle={endingMeta?.title}
+              onLeave={onLeave}
+            />
+          </div>
         </div>
         <div className="hidden w-[330px] shrink-0 border-l border-ink-700/70 bg-ink-950/80 backdrop-blur-sm lg:block">
           <Sidebar state={state} />
