@@ -117,6 +117,19 @@ function EntryView({ e }: { e: LogEntry }) {
         </div>
       );
     }
+    case "doubt":
+      return (
+        <div className="anim-voice-in my-2 border-l-2 border-purple-400/60 bg-purple-900/10 py-1.5 pl-4">
+          <div className="mb-0.5 flex items-center gap-2">
+            <span className="font-display text-[11px] font-bold tracking-[0.25em] uppercase text-purple-300">
+              疑 DOUBT
+            </span>
+          </div>
+          <p className="font-body text-[13px] leading-relaxed italic text-purple-200/90">
+            {fmt(e.text)}
+          </p>
+        </div>
+      );
   }
 }
 

@@ -44,7 +44,14 @@ export type Condition =
   | { t: "day"; gte: number }
   | { t: "all"; of: Condition[] }
   | { t: "any"; of: Condition[] }
-  | { t: "not"; of: Condition };
+  | { t: "not"; of: Condition }
+  // Zero Parades / Disco Elysium inspired
+  | { t: "doubt"; id: string }
+  | { t: "notdoubt"; id: string }
+  | { t: "theory"; id: string }
+  | { t: "nottheory"; id: string }
+  | { t: "dream"; id: string }
+  | { t: "redcheck"; id: string };
 
 /* -------------------------------- effects --------------------------------- */
 
@@ -62,7 +69,13 @@ export type Effect =
   | { t: "mod"; skill: SkillId; d: number; label: string }
   | { t: "thought"; id: string; label: string; skill: SkillId; d: number }
   | { t: "time"; minutes: number }
-  | { t: "ending"; id: string; title: string };
+  | { t: "ending"; id: string; title: string }
+  // Zero Parades / Disco Elysium inspired
+  | { t: "doubt"; id: string; statement: string; npc: NpcId }
+  | { t: "theory"; id: string; title: string; description: string }
+  | { t: "ency"; id: string; title: string; text: string; category: string }
+  | { t: "redcheck"; id: string; label: string }
+  | { t: "dream"; id: string; title: string };
 
 /* -------------------------------- dialogue -------------------------------- */
 
@@ -112,7 +125,7 @@ export interface GNode {
 
 /* --------------------------------- state ---------------------------------- */
 
-export type LogKind = "narr" | "npc" | "player" | "voice" | "system" | "check" | "know" | "chapter";
+export type LogKind = "narr" | "npc" | "player" | "voice" | "system" | "check" | "know" | "chapter" | "doubt";
 
 export interface LogEntry {
   key: number;
@@ -161,6 +174,12 @@ export interface GameState {
   endings: string[]; // ending ids reached this run
   done: boolean;
   keySeq: number;
+  // Zero Parades-inspired systems
+  doubts: Record<string, { statement: string; npc: NpcId; day: number }>; // doubted statements
+  theories: string[]; // theory ids formed
+  encyclopaedia: Record<string, { title: string; text: string; category: string }>; // lore entries
+  redChecks: string[]; // red check ids already attempted
+  dreams: string[]; // dream sequence ids seen
 }
 
 export type Outcome = "crit-fail" | "fail" | "partial" | "success" | "crit-success";

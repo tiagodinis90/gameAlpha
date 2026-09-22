@@ -4,13 +4,15 @@ import { FACTIONS, NPCS, REL_DIMS, SKILLS } from "../game/types";
 import { effectiveSkill } from "../game/engine";
 import { QUEST_STAGES } from "../game/content";
 
-type Tab = "self" | "bonds" | "fates" | "journal";
+type Tab = "self" | "bonds" | "fates" | "journal" | "theories" | "ency";
 
 const TABS: { id: Tab; label: string; kanji: string }[] = [
   { id: "self", label: "Self", kanji: "己" },
   { id: "bonds", label: "Bonds", kanji: "縁" },
   { id: "fates", label: "Fates", kanji: "旗" },
   { id: "journal", label: "Journal", kanji: "書" },
+  { id: "theories", label: "Theories", kanji: "論" },
+  { id: "ency", label: "Lore", kanji: "知" },
 ];
 
 function Bar({ value, max, color }: { value: number; max: number; color: string }) {
@@ -268,6 +270,111 @@ function JournalTab({ s }: { s: GameState }) {
   );
 }
 
+function TheoriesTab({ s }: { s: GameState }) {
+  const THEORIES: Record<string, { title: string; description: string }> = {
+    prosperity_rent: {
+      title: "Prosperity Rent",
+      description: "The village's harvest is not free. The sealed path leads to something that is being paid for. The payment is not grain.",
+    },
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <div className="mb-2 font-body text-[10px] uppercase tracking-[0.3em] text-paper-700">
+          Theories Formed · {s.theories.length}
+        </div>
+        {s.theories.length === 0 ? (
+          <p className="font-body text-[11px] italic text-paper-700">
+            No theories yet. Gather threads, connect them, and the arithmetic will reveal itself.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {s.theories.map((id) => {
+              const theory = THEORIES[id];
+              if (!theory) return null;
+              return (
+                <div key={id} className="border border-purple-700/40 bg-purple-900/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-base text-purple-300">論</span>
+                    <span className="font-display text-[13px] font-bold text-purple-200">{theory.title}</span>
+                  </div>
+                  <p className="mt-2 font-body text-[11px] leading-relaxed text-paper-300 italic">{theory.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {Object.keys(s.doubts).length > 0 && (
+        <div>
+          <div className="mb-2 font-body text-[10px] uppercase tracking-[0.3em] text-paper-700">
+            Doubts Planted · {Object.keys(s.doubts).length}
+          </div>
+          <div className="flex flex-col gap-2">
+            {Object.entries(s.doubts).map(([id, doubt]) => (
+              <div key={id} className="border border-purple-700/30 bg-purple-900/5 p-2.5">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-body text-[10px] uppercase tracking-wider text-purple-400">
+                    {NPCS[doubt.npc].name} · Day {doubt.day}
+                  </span>
+                </div>
+                <p className="mt-1 font-body text-[10.5px] leading-relaxed text-paper-500 italic">
+                  "{doubt.statement}"
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EncyclopaediaTab({ s }: { s: GameState }) {
+  const entries = Object.entries(s.encyclopaedia);
+  const categories = Array.from(new Set(entries.map(([, e]) => e.category)));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <div className="mb-2 font-body text-[10px] uppercase tracking-[0.3em] text-paper-700">
+          Encyclopaedia · {entries.length} entries
+        </div>
+        {entries.length === 0 ? (
+          <p className="font-body text-[11px] italic text-paper-700">
+            The encyclopaedia is empty. Knowledge accumulates as you observe, listen, and connect threads.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {categories.map((cat) => (
+              <div key={cat}>
+                <div className="mb-1.5 font-display text-[11px] font-bold tracking-[0.2em] text-gold-400 uppercase">
+                  {cat}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {entries
+                    .filter(([, e]) => e.category === cat)
+                    .map(([id, entry]) => (
+                      <div key={id} className="border border-ink-700 bg-ink-900/40 p-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-sm text-gold-400">知</span>
+                          <span className="font-display text-[12px] font-bold text-paper-100">{entry.title}</span>
+                        </div>
+                        <p className="mt-1.5 font-body text-[10.5px] leading-relaxed text-paper-500">{entry.text}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar({ state }: { state: GameState }) {
   const [tab, setTab] = useState<Tab>("self");
   return (
@@ -291,6 +398,8 @@ export default function Sidebar({ state }: { state: GameState }) {
         {tab === "bonds" && <BondsTab s={state} />}
         {tab === "fates" && <FatesTab s={state} />}
         {tab === "journal" && <JournalTab s={state} />}
+        {tab === "theories" && <TheoriesTab s={state} />}
+        {tab === "ency" && <EncyclopaediaTab s={state} />}
       </div>
     </div>
   );

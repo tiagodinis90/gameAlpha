@@ -161,6 +161,13 @@ export function evaluate(state: GameState, c: Condition | undefined): boolean {
     case "all": return c.of.every((x) => evaluate(state, x));
     case "any": return c.of.some((x) => evaluate(state, x));
     case "not": return !evaluate(state, c.of);
+    // Zero Parades / Disco Elysium inspired
+    case "doubt": return c.id in state.doubts;
+    case "notdoubt": return !(c.id in state.doubts);
+    case "theory": return state.theories.includes(c.id);
+    case "nottheory": return !state.theories.includes(c.id);
+    case "dream": return state.dreams.includes(c.id);
+    case "redcheck": return state.redChecks.includes(c.id);
   }
 }
 
@@ -231,20 +238,64 @@ function applyEffect(s: GameState, e: Effect): void {
       if (!s.endings.includes(e.id)) s.endings.push(e.id);
       s.done = true;
       break;
+    // Zero Parades / Disco Elysium inspired
+    case "doubt":
+      s.doubts[e.id] = { statement: e.statement, npc: e.npc, day: dayOf(s.minutes) };
+      push(s, {
+        kind: "system",
+        text: `Doubt planted — "${e.statement.slice(0, 60)}${e.statement.length > 60 ? "…" : ""}"`,
+        tone: "neutral",
+      });
+      break;
+    case "theory":
+      if (!s.theories.includes(e.id)) {
+        s.theories.push(e.id);
+        push(s, { kind: "chapter", text: `Theory formed — ${e.title}` });
+      }
+      break;
+    case "ency":
+      if (!(e.id in s.encyclopaedia)) {
+        s.encyclopaedia[e.id] = { title: e.title, text: e.text, category: e.category };
+        push(s, { kind: "know", text: `Encyclopaedia entry — ${e.title}`, tone: "neutral" });
+      }
+      break;
+    case "redcheck":
+      if (!s.redChecks.includes(e.id)) {
+        s.redChecks.push(e.id);
+        push(s, { kind: "chapter", text: `Red check marked — ${e.label}`, tone: "bad" });
+      }
+      break;
+    case "dream":
+      if (!s.dreams.includes(e.id)) {
+        s.dreams.push(e.id);
+        push(s, { kind: "chapter", text: `Dream remembered — ${e.title}`, tone: "neutral" });
+      }
+      break;
   }
 }
 
 export function thoughtDescription(id: string): string {
-  switch (id) {
-    case "what_the_mist_keeps":
-      return "The fog is not weather. It is a village holding its breath. You carry that breath with you now, and it sharpens what you read.";
-    case "the_weight_of_names":
-      return "Six names, six stones, and your signature under the truth of it. Ink is heavier than stone, if you write it honestly.";
-    case "the_wanderers_path":
-      return "Every road you have ever taken is a single road. It teaches your eyes to notice what stays behind.";
-    default:
-      return "";
-  }
+  const DESCS: Record<string, string> = {
+    what_the_mist_keeps: "The fog is not weather. It is a village holding its breath. You carry that breath with you now, and it sharpens what you read.",
+    the_weight_of_names: "Six names, six stones, and your signature under the truth of it. Ink is heavier than stone, if you write it honestly.",
+    the_wanderers_path: "Every road you have ever taken is a single road. It teaches your eyes to notice what stays behind.",
+    the_roof_that_holds: "A story is a roof. It does not matter whether it is true. It matters whether it holds. You have chosen to hold this one.",
+    the_arithmetic_of_gratitude: "Prosperity is never free. It is rented. The rent is paid, has always been paid, will always be paid. You now know the price.",
+    the_seventh_keeper: "The mountain asks. You answer with your whole life, or not at all. The ledger gains a seventh hand, and the stair grows a little shorter.",
+    the_unbound_mist: "The seal is cut. The rain arrives. The children draw seven figures. You have broken the arithmetic, and something older than arithmetic is watching.",
+    the_ink_heavier_than_stone: "Names against arithmetic, sent to the capital. The whole war of this mountain, ended by one honest hand. Or begun.",
+    the_travellers_answer: "The road is also a kind of answer. Some stories are not yours to finish. The mist lets you go — that is the unsettling part.",
+    the_debt_of_silence: "You chose a roof over a receipt. Both hold. Ask yourself, on the long road down, which one you sleep under.",
+    the_iron_in_the_water: "The well tastes of iron. Or it tastes of nothing. Both are memories the village has chosen to forget. You have chosen to remember.",
+    the_childrens_game: "Children do not coordinate silence. They are taught it. There is a curriculum in this village, and you are not on it — or you are, and that is worse.",
+    the_merchants_fear: "Fear is moving through the village like a season. Every warding charm was bought within a month. The mountain is hungry, or the village is afraid, or both.",
+    the_monks_broom: "The stair grows a little longer each year. Or the monk grows a little shorter. The bell disagrees with both. You have sat in this silence, and it has changed you.",
+    the_cartographers_thread: "A map is just a grave with coordinates. She has come to exhume a village's history. You have given her the red thread, and she will never forgive you if it leads nowhere.",
+    the_gatekeepers_lantern: "He carries an unlit lantern up a mountain at dusk. It is a prop — or an offering. You have learned to read the gatekeeper's arithmetic.",
+    the_elders_receipt: "The rent is due again. The half-finished name. The seventh tally. The village is already choosing — it simply hasn't told itself yet.",
+    the_well_guard_grief: "Ten years. He guarded the water she was under. Grief and gratitude, arriving together. He will be loyal to you now, which is a weight — carry it carefully.",
+  };
+  return DESCS[id] ?? "";
 }
 
 function advanceTime(s: GameState, minutes: number): void {
@@ -343,6 +394,12 @@ export function newGame(buildId: string): GameState {
     endings: [],
     done: false,
     keySeq: 0,
+    // Zero Parades / Disco Elysium inspired
+    doubts: {},
+    theories: [],
+    encyclopaedia: {},
+    redChecks: [],
+    dreams: [],
   };
   return s;
 }
@@ -469,6 +526,12 @@ function migrate(s: GameState): GameState {
   let out = s;
   if (!out.pendingVoices) out = { ...out, pendingVoices: [] };
   if (typeof out.beat !== "number") out = { ...out, beat: 0 };
+  // v1 → v2: add Zero Parades / Disco Elysium systems
+  if (!out.doubts) out = { ...out, doubts: {} };
+  if (!out.theories) out = { ...out, theories: [] };
+  if (!out.encyclopaedia) out = { ...out, encyclopaedia: {} };
+  if (!out.redChecks) out = { ...out, redChecks: [] };
+  if (!out.dreams) out = { ...out, dreams: [] };
   return out;
 }
 

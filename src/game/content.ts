@@ -22,12 +22,13 @@ const CLUES: string[] = ["clue_sleeve", "drawings", "kenta_sister", "ledger_gap"
 
 const ARRIVAL: GNode[] = [
   N("arr.1", "road",
-    "The road ends where the mist begins. Below, the village of Kagerou crouches in its valley like a held breath — smoke rising, lanterns waking, every roof turned carefully away from the mountain. Your circuit writ names this place *prosperous, unremarkable, behind on its paper*. The capital wants its history recorded. The mountain, apparently, wants something else.",
+    "The road ends where the mist begins. Below, the village of Kagerou crouches in its valley like a held breath — smoke rising, lanterns waking, every roof turned carefully away from the mountain. Your circuit writ names this place *prosperous, unremarkable, behind on its paper*. The capital wants its history recorded. The mountain, apparently, wants something else. The air tastes of cedar and something older — stone, perhaps, or the memory of stone. You have walked many roads to many villages, but this one feels different. This one feels *watched*.",
     [c("a1", "Shoulder your pack and go down.", "arr.2", { say: "(Down the mountain road, into the mist.)" })],
     {
       voices: [
-        v("perception", "The guide-rope along the cliff is new. Cut this season. Someone expects travellers to *stay on the path*."),
-        v("lore", "Kagerou. 'Heat-haze.' A village named for the thing you can almost, but never quite, see."),
+        v("perception", "The guide-rope along the cliff is new. Cut this season. Someone expects travellers to *stay on the path*. The rope is braided from seven strands, each a different age — a rope renewed for decades, one layer at a time. Whatever died up there, the village keeps paying its funeral costs."),
+        v("lore", "Kagerou. 'Heat-haze.' A village named for the thing you can almost, but never quite, see. The name is a warning, or a confession, or both."),
+        v("empathy", "The village is afraid. Not of you — not yet. Of something else. The roofs are turned away from the mountain the way children turn away from a sleeping dog. Respect, or fear. Sometimes they are the same thing."),
       ],
     }),
   N("arr.2", "road",
@@ -81,6 +82,10 @@ const GATE: GNode[] = [
           mods: [{ cond: { t: "know", id: "clue_sleeve" }, d: 1, label: "You know which paths stay wet" }],
         },
       }),
+      c("g7", "Doubt his claim about Kagerou's history.", "gate.doubt", {
+        say: "You say Kagerou keeps its own history. But the capital's writ mentions a landslide forty years ago. That's not in your records, is it?",
+        cond: { t: "notdoubt", id: "gate_history" },
+      }),
     ],
     {
       voices: [
@@ -88,6 +93,19 @@ const GATE: GNode[] = [
         v("perception", "His left sleeve is damp to the elbow. It hasn't rained in three days.", { t: "notknow", id: "clue_sleeve" }),
       ],
     }),
+  N("gate.doubt", "gate",
+    "You let the word *history* hang in the air between you. \"The capital's writ mentions a landslide forty years ago. Six dead. That's not in your records, is it?\" Genji's face goes very still — the kind of stillness that is not calm but *calculation*. \"The capital's records are incomplete,\" he says slowly. \"They always are. A village that keeps its own history keeps the *whole* history — the parts that don't make the ledger, too.\" He meets your eyes, and for the first time there is something like respect in his gaze. \"You ask the right questions, paper man. The wrong ones, but the *right* ones. Go. The elder will decide if you're clever enough to survive the answers.\"",
+    [c("g7", "Enter Kagerou, carrying the doubt.", "hub.village")],
+    { speaker: "Genji, the Gatekeeper", kanji: "源", fx: [
+      { t: "flag", id: "entered" }, { t: "questStage", id: "names_under_stones", stage: 1 },
+      { t: "doubt", id: "gate_history", statement: "The capital's records are incomplete. A village that keeps its own history keeps the parts that don't make the ledger.", npc: "genji" },
+      { t: "ency", id: "landslide", title: "The Landslide of the Third Year", text: "The capital's writ mentions a landslide forty years ago, six dead. The village's official history makes no mention of it. Either the capital is wrong, or the village is lying.", category: "History" },
+      { t: "rel", npc: "genji", dim: "respect", d: 10 }, { t: "rel", npc: "genji", dim: "suspicion", d: 5 },
+      { t: "memory", npc: "genji", text: "Asked about the landslide. The capital's records, the village's silence. He's already connecting threads. Dangerous, or useful.", w: 3 },
+    ], voices: [
+      v("reason", "The capital's records are incomplete. The village's history is edited. Both are true. The truth is in the gap."),
+      v("lore", "A village that keeps its own history is a village that edits it. The question is not whether the landslide happened. The question is why the village forgot it."),
+    ]}),
   N("gate.pass", "gate",
     "Something in the way you hold the writ — or the way you hold yourself behind it — lands. Genji's jaw works once. “Paper beats steel this decade, then.” He pulls the gate open with a groan of green timber. “The elder will want a word. They always want a word.” Beyond him, Kagerou smells of cedar smoke and river water and something faintly sweet you cannot place.",
     [c("g7", "Enter Kagerou.", "hub.village")],
@@ -215,9 +233,27 @@ const HUB: GNode[] = [
       at: 20,
     }),
   N("hub.rest", "village",
-    "You take a room above the storehouse — the only room offered, and you notice the window faces the mountain. Sleep comes in thin layers. Somewhere past midnight the mist presses against the paper screen like a palm, and you dream of six stones in a row, patient as teeth.",
-    [c("h_r1", "Wake with the bell.", "hub.village")],
+    "You take a room above the storehouse — the only room offered, and you notice the window faces the mountain. Sleep comes in thin layers. Somewhere past midnight the mist presses against the paper screen like a palm, and you dream of six stones in a row, patient as teeth. You wake with the taste of iron on your tongue, and the certainty that something has been *counting* you.",
+    [
+      c("h_r1", "Wake with the bell.", "hub.village"),
+      c("h_r2", "Remember the dream more clearly.", "hub.dream", {
+        cond: { t: "all", of: [{ t: "notflag", id: "dream_six_stones_seen" }, { t: "any", of: [{ t: "know", id: "drawings" }, { t: "know", id: "clue_sleeve" }] }] },
+        say: "(You lie still. The dream is not finished. The stones are waiting.)",
+      }),
+    ],
     { fx: [{ t: "time", minutes: 600 }] }),
+  N("hub.dream", "village",
+    "The dream returns, unbidden: six stones in a row, patient as teeth. You walk among them, and each stone has a name carved into it — names you have not yet read, but will. The seventh stone is blank, and it is *waiting*. A voice — not a voice, a *presence* — says: *The arithmetic is assembling itself. You are the seventh variable.* You wake with your hand on the window frame, and the mist outside is shaped like a hand pressing against the glass. The dream is not a dream. It is a *message*, and the sender is patient.",
+    [c("h_r3", "Rise. The day is waiting.", "hub.village")],
+    { fx: [
+      { t: "dream", id: "six_stones", title: "The Six Stones" },
+      { t: "flag", id: "dream_six_stones_seen" },
+      { t: "ency", id: "dream_six_stones", title: "The Dream of Six Stones", text: "Six stones in a row, patient as teeth. The seventh is blank, and it is waiting. The arithmetic is assembling itself. You are the seventh variable. The dream is not a dream. It is a message, and the sender is patient.", category: "Dreams" },
+    ], voices: [
+      v("reason", "The dream is not random. It is *structured*. Six stones, seven variables. The arithmetic is assembling itself, and you are part of it."),
+      v("empathy", "The presence in the dream is not hostile. It is *waiting*. It has been waiting for forty years, and it can wait a little longer."),
+      v("lore", "The seventh stone is blank. In the old rites, the seventh pillar was always the one who *chose*. The others were given. The seventh volunteered."),
+    ]}),
   N("well.children", "village",
     "Three children sit by the well with charcoal and paper, drawing with the dead seriousness of people documenting something important. As your shadow crosses their work, the papers vanish up three sleeves in perfect unison — a drill, practised. The youngest is not fast enough. You see it for one second: a shrine on a ridge, a rope around it, and *six figures* standing beneath the roof. Small figures. The children look at you with eyes that are already negotiating.",
     [
@@ -232,7 +268,10 @@ const HUB: GNode[] = [
   N("well.ask", "village",
     "The youngest — a girl with ink-stained fingers — decides you are safe the way children decide: instantly and for reasons no adult can audit. “It's the *real* house,” she whispers. “The one on the mountain. Six people live there. They're very old and very quiet and my grandmother says we feed them so they stay asleep.” The older children grab her shoulders. “We weren't drawing anything,” says one, with enormous dignity. They run. The abandoned paper stays: six figures, a rope, and a seventh figure — sketched, then furiously crossed out.",
     [c("w3", "Pocket the drawing.", "hub.village", { say: "(The drawing goes into your sleeve. Evidence of a game. Or of a census.)" })],
-    { fx: [{ t: "know", id: "drawings", label: "The children draw a shrine that doesn't exist — six sleepers beneath it, and a seventh figure crossed out." }] }),
+    { fx: [
+      { t: "know", id: "drawings", label: "The children draw a shrine that doesn't exist — six sleepers beneath it, and a seventh figure crossed out." },
+      { t: "ency", id: "childrens_drawings", title: "The Children's Drawings", text: "The children of Kagerou draw a shrine that does not exist on any map. Six figures sleep beneath it, and a seventh is crossed out. They are taught silence about it. The curriculum includes fear.", category: "Village Life" },
+    ] }),
   N("well.name", "village",
     "The word *shrine* lands like a dropped bowl. The eldest child studies you for a long moment, then delivers, in the flat tone of someone passing on cargo: “Grandmother says the shrine ate the old road and six people with it, and the rope is its mouth tied shut. Also we aren't allowed to talk to you.” They leave in a flock. The youngest drops her paper on purpose, you think. Deliberate losses have a certain style.",
     [c("w4", "Take the paper.", "hub.village")],
@@ -409,6 +448,7 @@ const JIKAI: GNode[] = [
     [c("j6", "Ask to see the sutra.", "jikai.hub")],
     { speaker: "Jikai, the Monk", kanji: "慈", fx: [
       { t: "know", id: "old_script", label: "The temple's oldest sutra speaks of 'pillars beneath the stones' — foundation sacrifices, an outlawed rite." },
+      { t: "ency", id: "foundation_sutra", title: "The Foundation Sutra", text: "The temple's oldest sutra speaks of 'pillars beneath the stones' — foundation sacrifices, an outlawed rite. The sutra is in the old script, and only three people in forty years have been able to read it. The village built itself *with* the mountain, not *on* it.", category: "Lore" },
       { t: "rel", npc: "jikai", dim: "respect", d: 15 }, { t: "rel", npc: "jikai", dim: "trust", d: 5 },
       { t: "memory", npc: "jikai", text: "Read the old script unprompted. In forty years of sweeping, I have met three who could. Be the third good one.", w: 3 },
     ]}),
@@ -481,7 +521,12 @@ const ELDER: GNode[] = [
       }),
       c("e3", "Ask about the village's history.", "elder.history", { cond: { t: "notknow", id: "ledger_gap" } }),
     ],
-    { speaker: "Elder Ochiba", kanji: "落", fx: [{ t: "flag", id: "elder_met" }], at: 30 }),
+    { speaker: "Elder Ochiba", kanji: "落", fx: [{ t: "flag", id: "elder_met" }], at: 30,
+      voices: [
+        v("perception", "The tea is already poured. She knew you were coming. The question is not whether she expected you. The question is what she expected you to *do*."),
+        v("empathy", "She is afraid. Not of you — not yet. Of something else. Her hands are still, but her eyes are not. She is holding something up, and she is tired."),
+        v("lore", "The room is empty by choice. A woman who keeps an empty room is a woman who has something to hide, or something to protect. Sometimes they are the same thing."),
+      ] }),
   N("elder.purpose", "village",
     "“Then we understand each other,” she says, with the warmth of a door closing politely. “Kagerou will show you its *official* history: the founding, the river works, the great harvests. You will find us prosperous and unremarkable, and your record will say so, and everyone will be satisfied.” She pours more tea. “A village is a story the living agree to tell, archivist. Be careful which pages you turn. Some of them are still *wet*.”",
     [c("e4", "Accept the tea.", "elder.hub")],
@@ -508,11 +553,27 @@ const ELDER: GNode[] = [
     { speaker: "Elder Ochiba", kanji: "落" }),
   N("elder.gap", "village",
     "You find it in the third column of the oldest section, where the first generation's hand grows hurried: a season *skipped*. Not a bad harvest recorded — a season simply missing, the page numbering jumping over it like a stone over water. The same season, you calculate, as the landslide the writ mentions in one line. Villages do not forget seasons. Ledgers do not skip. *Hands* skip — hands that are being watched, or hands that are shaking.",
-    [c("e8", "Close the ledger gently.", "elder.hub", { say: "(You close the ledger with the care of a man handling a sleeping animal.)" })],
+    [
+      c("e8", "Close the ledger gently.", "elder.hub", { say: "(You close the ledger with the care of a man handling a sleeping animal.)" }),
+      c("e8b", "Form a theory about the missing season.", "elder.theory", {
+        cond: { t: "all", of: [{ t: "know", id: "ledger_gap" }, { t: "any", of: [{ t: "know", id: "clue_sleeve" }, { t: "know", id: "drawings" }] }, { t: "nottheory", id: "prosperity_rent" }] },
+        say: "(You sit very still. The arithmetic is assembling itself: a missing season, a sealed path, children drawing a shrine that doesn't exist. The prosperity is not free. It is *rented*.)",
+      }),
+    ],
     { fx: [
       { t: "know", id: "ledger_gap", label: "The official ledger skips an entire season — the same season as the 'landslide', forty years ago." },
       { t: "rel", npc: "ochiba", dim: "suspicion", d: 5 },
     ], voices: [v("reason", "One missing season. Six missing names, if the children draw true. The arithmetic is assembling itself whether you help it or not.")] }),
+  N("elder.theory", "village",
+    "The theory forms in your mind like a sentence you have been trying to write for years: *The prosperity is rented. The rent is paid. The payment is not grain.* You do not say it aloud — not yet, not here, not to the woman whose hands are so still they could be carved from the same wood as the table. But you write it in the margin of your record, in the small careful hand you use for things that might get you killed: *Theory: Prosperity Rent. The village's harvest is not free. The sealed path leads to something that is being paid for. The payment is not grain.*",
+    [c("e8c", "File the theory away.", "elder.hub")],
+    { fx: [
+      { t: "theory", id: "prosperity_rent", title: "Prosperity Rent", description: "The village's harvest is not free. The sealed path leads to something that is being paid for. The payment is not grain." },
+      { t: "ency", id: "prosperity_rent", title: "The Arithmetic of Gratitude", text: "Prosperity is never free. It is rented. The rent is paid, has always been paid, will always be paid. The question is not whether the village pays. The question is what the village pays *with*.", category: "Theories" },
+    ], voices: [
+      v("reason", "The theory is formed. It is not yet proven, but it is *plausible*. The arithmetic is assembling itself."),
+      v("empathy", "You have named the thing the village fears. The elder's hands are still, but her eyes are not. She knows you know."),
+    ]}),
   N("elder.gap_f", "village",
     "The columns swim. Forty years of grain is a lot of arithmetic, and Ochiba's tea is doing something suspicious to your focus. When you look up, the ledger is being gently, firmly removed. “The light is poor for copying,” she says. “Come back when your eyes are fresher, archivist.” Her smile does not reach anywhere near her eyes.",
     [c("e9", "Accept the dismissal.", "elder.hub")],
@@ -747,6 +808,7 @@ const SHRINE: GNode[] = [
     { fx: [
       { t: "know", id: "the_names", label: "Six names under the stone — Aki, Gorō, the miller's two, the ferryman, Ise aged eleven. Two fresh cuts: Miyo, and a seventh name left half-finished." },
       { t: "flag", id: "saw_names" }, { t: "questStage", id: "names_under_stones", stage: 2 },
+      { t: "ency", id: "the_six_names", title: "The Six Names Under the Stone", text: "Six names under the stone: Aki of the east field, Gorō the boatwright, two of the miller's line, the ferryman, and Ise aged eleven. Two fresh cuts: Miyo, and a seventh name left half-finished. The arithmetic is assembling itself.", category: "The Shrine" },
       { t: "thought", id: "what_the_mist_keeps", label: "What the Mist Keeps", skill: "lore", d: 1 },
     ], voices: [
       v("empathy", "One of them was *eleven*. Say it again, inside. Do not let the arithmetic make you forget the eleven."),
