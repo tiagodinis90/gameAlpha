@@ -1,3 +1,5 @@
+> **Personal creative experiment.** This is an unfinished narrative/game-systems prototype, separate from my environmental engineering work. For the purpose, technical scope and limitations of these experiments, see [Creative experiments](https://github.com/tiagodinis90/tiagodinis90/blob/main/CREATIVE_EXPERIMENTS.md).
+
 # KIRIFUSHI — narrative RPG prototype
 
 **Status:** experimental browser game. **Implementation:** React, TypeScript and Vite, not Godot or GDScript.
